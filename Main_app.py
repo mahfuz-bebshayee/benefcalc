@@ -24,7 +24,7 @@ st.markdown("""---""")
 
 with st.form("calc_form"):
     st.subheader("Case Information")
-    case_number = st.text_input("Case Number")
+    case_number = st.text_input("Toe Digit")
     filing_date = st.date_input("Filing Date")
     pa_start_date = st.date_input("PA Start Date")
     snap_start_date = st.date_input("SNAP Start Date", help="Consider if ESNAP was issued")
