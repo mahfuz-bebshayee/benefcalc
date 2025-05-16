@@ -1,9 +1,6 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
-# -------------------------------
-# Password Protection
-# -------------------------------
 def login():
     st.title("🔐 Benefit Calculator Login")
     password = st.text_input("Enter Password", type="password")
@@ -13,18 +10,13 @@ def login():
         st.error("Incorrect password.")
     return False
 
-# -------------------------------
-# Core App Logic
-# -------------------------------
 def run_app():
     st.title("📊 Benefit Cycle Calculator")
     st.caption("Built for private use by Mahfuz bhai")
 
-    # 🔄 Reset Button
     if st.button("🔄 Reset Form"):
         st.experimental_rerun()
 
-    # Input Fields
     st.subheader("📝 Case Information")
     case_number = st.text_input("Toe Digit")
     filing_date_str = st.text_input("Filing Date (MM/DD/YYYY)")
@@ -42,7 +34,6 @@ def run_app():
 
     if st.button("Calculate"):
         try:
-            # Validate and convert date inputs
             filing_date = datetime.strptime(filing_date_str.strip(), "%m/%d/%Y")
             pa_start_date = datetime.strptime(pa_start_str.strip(), "%m/%d/%Y")
             snap_start_date = datetime.strptime(snap_start_str.strip(), "%m/%d/%Y")
@@ -55,28 +46,33 @@ def run_app():
             }[toe_digit]
 
             f_and_o = round(pa_grant - shelter_amt, 2)
+            f_and_o_cycles = []
+
+            # Determine first cycle (might need to start in previous month)
             month = pa_start_date.month
             year = pa_start_date.year
-            f_and_o_cycles = []
-            first = True
+            a_start = datetime(year, month, sd)
+            if pa_start_date < a_start:
+                # Backtrack to previous month for possible 4B partial
+                month = 12 if month == 1 else month - 1
+                year = year - 1 if month == 12 else year
 
+            first = True
             while True:
+                # A cycle
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
 
                 if first:
                     if pa_start_date > end_a:
-                        # Skip A cycle, PA starts later
                         pass
                     elif pa_start_date > start_a:
-                        # Partial
                         days = (end_a - pa_start_date).days + 1
                         amt = round((f_and_o / 15.213) * days, 2)
                         f_and_o_cycles.append((cycle_name, pa_start_date, end_a, "Partial", amt))
                         first = False
                     else:
-                        # Full
                         f_and_o_cycles.append((cycle_name, start_a, end_a, "Full", f_and_o))
                         first = False
                 else:
@@ -85,13 +81,26 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
+                # B cycle
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
                 next_year = year if month < 12 else year + 1
                 end_b = datetime(next_year, next_month, sd - 1)
 
-                f_and_o_cycles.append((cycle_name_b, start_b, end_b, "Full", f_and_o))
+                if first:
+                    if pa_start_date > end_b:
+                        pass
+                    elif pa_start_date > start_b:
+                        days = (end_b - pa_start_date).days + 1
+                        amt = round((f_and_o / 15.213) * days, 2)
+                        f_and_o_cycles.append((cycle_name_b, pa_start_date, end_b, "Partial", amt))
+                        first = False
+                    else:
+                        f_and_o_cycles.append((cycle_name_b, start_b, end_b, "Full", f_and_o))
+                        first = False
+                else:
+                    f_and_o_cycles.append((cycle_name_b, start_b, end_b, "Full", f_and_o))
 
                 if cycle_name_b == budget_effective:
                     break
@@ -101,7 +110,7 @@ def run_app():
 
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # FS (Food Stamps)
+            # Food Stamps
             fs_cycles = []
             fs_month = snap_start_date.month
             fs_year = snap_start_date.year
@@ -111,7 +120,6 @@ def run_app():
             while True:
                 fs_start = datetime(fs_year, fs_month, 1)
                 fs_end = datetime(fs_year, fs_month + 1, 1) - timedelta(days=1) if fs_month < 12 else datetime(fs_year, fs_month, 31)
-
                 if first_fs:
                     if snap_start_date.day == 1:
                         fs_cycles.append((f"{fs_month}A", snap_start_date, fs_end, "Complete", fs_amt))
@@ -129,7 +137,7 @@ def run_app():
                     fs_month = 1
                     fs_year += 1
 
-            # Shelter Grant
+            # Shelter Grants
             shelter_cycles = []
             shelter_cutoff = datetime(2025, budget_month, ed if budget_effective.endswith("A") else 28)
             current = datetime(filing_date.year, filing_date.month, sd)
@@ -147,7 +155,7 @@ def run_app():
                 shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
                 current = eb + timedelta(days=1)
 
-            # Display
+            # Output
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
@@ -166,8 +174,5 @@ def run_app():
         except Exception as e:
             st.error(f"❌ Unexpected error: {e}")
 
-# -------------------------------
-# Main Trigger
-# -------------------------------
 if login():
     run_app()
