@@ -20,6 +20,10 @@ def run_app():
     st.title("📊 Benefit Cycle Calculator")
     st.caption("Built for private use by Mahfuz bhai")
 
+    # 🔄 Reset Button
+    if st.button("🔄 Reset Form"):
+        st.experimental_rerun()
+
     # Input Fields
     st.subheader("📝 Case Information")
     case_number = st.text_input("Toe Digit")
@@ -62,13 +66,19 @@ def run_app():
                 end_a = datetime(year, month, ed)
 
                 if first:
-                    if pa_start_date > start_a:
+                    if pa_start_date > end_a:
+                        # Skip A cycle, PA starts later
+                        pass
+                    elif pa_start_date > start_a:
+                        # Partial
                         days = (end_a - pa_start_date).days + 1
                         amt = round((f_and_o / 15.213) * days, 2)
                         f_and_o_cycles.append((cycle_name, pa_start_date, end_a, "Partial", amt))
+                        first = False
                     else:
+                        # Full
                         f_and_o_cycles.append((cycle_name, start_a, end_a, "Full", f_and_o))
-                    first = False
+                        first = False
                 else:
                     f_and_o_cycles.append((cycle_name, start_a, end_a, "Full", f_and_o))
 
