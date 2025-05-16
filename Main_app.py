@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 def login():
     st.title("🔐 Benefit Calculator Login")
     password = st.text_input("Enter Password", type="password")
-    if password == "bismillah2025":
+    if password == "09101993":
         return True
     elif password:
         st.error("Incorrect password.")
