@@ -20,9 +20,13 @@ def run_app():
     st.title("📊 Benefit Cycle Calculator")
     st.caption("Built for private use by Mahfuz bhai")
 
+    # 🔄 Reset Button
+    if st.button("🔄 Reset Form"):
+        st.experimental_rerun()
+
     # Input Fields
     st.subheader("📝 Case Information")
-    case_number = st.text_input("Toe Digit")
+    case_number = st.text_input("Case Number")
     filing_date_str = st.text_input("Filing Date (MM/DD/YYYY)")
     pa_start_str = st.text_input("PA Start Date (MM/DD/YYYY)")
     snap_start_str = st.text_input("SNAP Start Date (MM/DD/YYYY)")
