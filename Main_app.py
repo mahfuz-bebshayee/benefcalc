@@ -64,7 +64,7 @@ def run_app():
                 if first:
                     if pa_start_date > start_a:
                         days = (end_a - pa_start_date).days + 1
-                        amt = round((f_and_o / 15) * days, 2)
+                        amt = round((f_and_o / 15.213) * days, 2)
                         f_and_o_cycles.append((cycle_name, pa_start_date, end_a, "Partial", amt))
                     else:
                         f_and_o_cycles.append((cycle_name, start_a, end_a, "Full", f_and_o))
