@@ -20,10 +20,6 @@ def run_app():
     st.title("📊 Benefit Cycle Calculator")
     st.caption("Built for private use by Mahfuz bhai")
 
-    # 🔄 Reset Button
-    if st.button("🔄 Reset Form"):
-        st.experimental_rerun()
-
     # Input Fields
     st.subheader("📝 Case Information")
     case_number = st.text_input("Case Number")
@@ -164,4 +160,6 @@ def run_app():
 # Main Trigger
 # -------------------------------
 if login():
+    if st.button("🔄 Reset Form"):
+        st.experimental_rerun()
     run_app()
