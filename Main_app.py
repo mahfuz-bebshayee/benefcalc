@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 def login():
     st.title("🔐 Benefit Calculator Login")
     password = st.text_input("Enter Password", type="password")
-    if password == "09101993":
+    if password == "bismillah2025":
         return True
     elif password:
         st.error("Incorrect password.")
@@ -19,6 +19,10 @@ def login():
 def run_app():
     st.title("📊 Benefit Cycle Calculator")
     st.caption("Built for private use by Mahfuz bhai")
+
+    # 🔄 Reset Button (moved here to fix crash)
+    if st.button("🔄 Reset Form"):
+        st.experimental_rerun()
 
     # Input Fields
     st.subheader("📝 Case Information")
@@ -160,6 +164,4 @@ def run_app():
 # Main Trigger
 # -------------------------------
 if login():
-    if st.button("🔄 Reset Form"):
-        st.experimental_rerun()
     run_app()
