@@ -14,9 +14,6 @@ def run_app():
     st.title("📊 Benefit Cycle Calculator")
     st.caption("Built for private use by Mahfuz bhai")
 
-    if st.button("🔄 Reset Form"):
-        st.experimental_rerun()
-
     st.subheader("📝 Case Information")
     case_number = st.text_input("Toe Digit")
     filing_date_str = st.text_input("Filing Date (MM/DD/YYYY)")
@@ -53,7 +50,7 @@ def run_app():
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
             if pa_start_date < a_start:
-                # Backtrack to previous month for possible 4B partial
+                # Backtrack to previous month for possible B cycle
                 month = 12 if month == 1 else month - 1
                 year = year - 1 if month == 12 else year
 
