@@ -15,7 +15,7 @@ def run_app():
     st.caption("Built for private use by Mahfuz bhai")
 
     st.subheader("📝 Case Information")
-    case_number = st.text_input("Toe Digit (0–9 only)")
+    toe_input = st.text_input("Toe Digit (0–9 only)")
     filing_date_str = st.text_input("Filing Date (MM/DD/YYYY)")
     pa_start_str = st.text_input("PA Start Date (MM/DD/YYYY)")
     snap_start_str = st.text_input("SNAP Start Date (MM/DD/YYYY)")
@@ -36,23 +36,24 @@ def run_app():
             pa_start_date = datetime.strptime(pa_start_str.strip(), "%m/%d/%Y")
             snap_start_date = datetime.strptime(snap_start_str.strip(), "%m/%d/%Y")
 
-            # Validate Toe Digit
-            toe_digit = case_number.strip()[-1] if case_number.strip().isdigit() else None
             toe_digit_table = {
                 "0": (1, 15), "1": (2, 16), "2": (4, 18), "3": (5, 19),
                 "4": (7, 21), "5": (8, 22), "6": (10, 24), "7": (11, 25),
                 "8": (13, 27), "9": (14, 28)
             }
 
+            toe_digit = toe_input.strip()
+            st.info(f"🧩 Processing Toe Digit: '{toe_digit}'")  # Debug display
+
             if toe_digit not in toe_digit_table:
-                st.error("⚠️ Toe Digit must be a single digit from 0 to 9.")
+                st.error("❗ Invalid Toe Digit. Please enter a single digit from 0 to 9.")
                 return
 
-            sd, ed = toe_digit_table[toe_digit]
+            sd, ed = toe_digit_table.get(toe_digit)
             f_and_o = round(pa_grant - shelter_amt, 2)
             f_and_o_cycles = []
 
-            # Start from the correct month
+            # First cycle check (could fall in previous month's B cycle)
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -62,7 +63,6 @@ def run_app():
 
             first = True
             while True:
-                # A cycle
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
@@ -84,7 +84,6 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
-                # B cycle
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
@@ -113,7 +112,7 @@ def run_app():
 
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # FS
+            # Food Stamps
             fs_cycles = []
             fs_month = snap_start_date.month
             fs_year = snap_start_date.year
@@ -140,7 +139,7 @@ def run_app():
                     fs_month = 1
                     fs_year += 1
 
-            # Shelter
+            # Shelter Grants
             shelter_cycles = []
             shelter_cutoff = datetime(2025, budget_month, ed if budget_effective.endswith("A") else 28)
             current = datetime(filing_date.year, filing_date.month, sd)
@@ -158,7 +157,7 @@ def run_app():
                 shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
                 current = eb + timedelta(days=1)
 
-            # Display
+            # Output
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
