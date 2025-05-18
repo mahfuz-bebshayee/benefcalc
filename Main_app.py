@@ -31,19 +31,20 @@ def run_app():
 
     if st.button("Calculate"):
         try:
-            # Validate and convert dates
+            # Date parsing
             filing_date = datetime.strptime(filing_date_str.strip(), "%m/%d/%Y")
             pa_start_date = datetime.strptime(pa_start_str.strip(), "%m/%d/%Y")
             snap_start_date = datetime.strptime(snap_start_str.strip(), "%m/%d/%Y")
+
+            # Toe digit validation
+            toe_digit = toe_input.strip()
+            st.info(f"🧩 Processing Toe Digit: '{toe_digit}'")
 
             toe_digit_table = {
                 "0": (1, 15), "1": (2, 16), "2": (4, 18), "3": (5, 19),
                 "4": (7, 21), "5": (8, 22), "6": (10, 24), "7": (11, 25),
                 "8": (13, 27), "9": (14, 28)
             }
-
-            toe_digit = toe_input.strip()
-            st.info(f"🧩 Processing Toe Digit: '{toe_digit}'")  # Debug display
 
             if toe_digit not in toe_digit_table:
                 st.error("❗ Invalid Toe Digit. Please enter a single digit from 0 to 9.")
@@ -53,7 +54,7 @@ def run_app():
             f_and_o = round(pa_grant - shelter_amt, 2)
             f_and_o_cycles = []
 
-            # First cycle check (could fall in previous month's B cycle)
+            # Determine cycle start point
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -63,6 +64,7 @@ def run_app():
 
             first = True
             while True:
+                # A cycle
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
@@ -84,6 +86,7 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
+                # B cycle
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
@@ -139,7 +142,7 @@ def run_app():
                     fs_month = 1
                     fs_year += 1
 
-            # Shelter Grants
+            # Shelter
             shelter_cycles = []
             shelter_cutoff = datetime(2025, budget_month, ed if budget_effective.endswith("A") else 28)
             current = datetime(filing_date.year, filing_date.month, sd)
@@ -157,7 +160,7 @@ def run_app():
                 shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
                 current = eb + timedelta(days=1)
 
-            # Output
+            # Display
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
@@ -171,8 +174,8 @@ def run_app():
             for c, s, e, a in shelter_cycles:
                 st.write(f"**{c}**: {s.strftime('%m/%d')} - {e.strftime('%m/%d')} | ${a}")
 
-        except ValueError:
-            st.error("⚠️ Please enter all dates in MM/DD/YYYY format.")
+        except ValueError as ve:
+            st.error(f"⚠️ ValueError occurred: {ve}")
         except Exception as e:
             st.error(f"❌ Unexpected error: {e}")
 
