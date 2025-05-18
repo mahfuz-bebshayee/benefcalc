@@ -31,12 +31,12 @@ def run_app():
 
     if st.button("Calculate"):
         try:
-            # Date parsing
+            # Validate date fields
             filing_date = datetime.strptime(filing_date_str.strip(), "%m/%d/%Y")
             pa_start_date = datetime.strptime(pa_start_str.strip(), "%m/%d/%Y")
             snap_start_date = datetime.strptime(snap_start_str.strip(), "%m/%d/%Y")
 
-            # Toe digit validation
+            # Validate Toe Digit
             toe_digit = toe_input.strip()
             st.info(f"🧩 Processing Toe Digit: '{toe_digit}'")
 
@@ -50,11 +50,11 @@ def run_app():
                 st.error("❗ Invalid Toe Digit. Please enter a single digit from 0 to 9.")
                 return
 
-            sd, ed = toe_digit_table.get(toe_digit)
+            sd, ed = toe_digit_table[toe_digit]
             f_and_o = round(pa_grant - shelter_amt, 2)
             f_and_o_cycles = []
 
-            # Determine cycle start point
+            # Determine first valid cycle (may fall in previous month)
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -91,7 +91,9 @@ def run_app():
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
                 next_year = year if month < 12 else year + 1
-                end_b = datetime(next_year, next_month, sd - 1)
+
+                # ✅ FIXED HERE: prevent day=0
+                end_b = datetime(next_year, next_month, max(sd - 1, 1))
 
                 if first:
                     if pa_start_date > end_b:
@@ -115,7 +117,7 @@ def run_app():
 
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # Food Stamps
+            # FS cycles
             fs_cycles = []
             fs_month = snap_start_date.month
             fs_year = snap_start_date.year
@@ -142,7 +144,7 @@ def run_app():
                     fs_month = 1
                     fs_year += 1
 
-            # Shelter
+            # Shelter cycles
             shelter_cycles = []
             shelter_cutoff = datetime(2025, budget_month, ed if budget_effective.endswith("A") else 28)
             current = datetime(filing_date.year, filing_date.month, sd)
@@ -155,12 +157,12 @@ def run_app():
                 shelter_cycles.append((f"{m}A", sa, ea, shelter_amt))
                 sb = ea + timedelta(days=1)
                 nm, ny = (m + 1, y) if m < 12 else (1, y + 1)
-                eb = datetime(ny, nm, sd - 1)
+                eb = datetime(ny, nm, max(sd - 1, 1))  # ✅ Fix reused here
                 if sb >= shelter_cutoff: break
                 shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
                 current = eb + timedelta(days=1)
 
-            # Display
+            # Display results
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
