@@ -1,6 +1,11 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
+def get_last_day_of_month(year, month):
+    if month == 12:
+        return datetime(year + 1, 1, 1) - timedelta(days=1)
+    return datetime(year, month + 1, 1) - timedelta(days=1)
+
 def login():
     st.title("🔐 Benefit Calculator Login")
     password = st.text_input("Enter Password", type="password")
@@ -31,12 +36,11 @@ def run_app():
 
     if st.button("Calculate"):
         try:
-            # Validate date fields
+            # Validate and convert dates
             filing_date = datetime.strptime(filing_date_str.strip(), "%m/%d/%Y")
             pa_start_date = datetime.strptime(pa_start_str.strip(), "%m/%d/%Y")
             snap_start_date = datetime.strptime(snap_start_str.strip(), "%m/%d/%Y")
 
-            # Validate Toe Digit
             toe_digit = toe_input.strip()
             st.info(f"🧩 Processing Toe Digit: '{toe_digit}'")
 
@@ -54,7 +58,6 @@ def run_app():
             f_and_o = round(pa_grant - shelter_amt, 2)
             f_and_o_cycles = []
 
-            # Determine first valid cycle (may fall in previous month)
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -64,7 +67,6 @@ def run_app():
 
             first = True
             while True:
-                # A cycle
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
@@ -86,14 +88,16 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
-                # B cycle
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
                 next_year = year if month < 12 else year + 1
 
-                # ✅ FIXED HERE: prevent day=0
-                end_b = datetime(next_year, next_month, max(sd - 1, 1))
+                # ✅ FIX: If sd == 1, use last day of the month
+                if sd == 1:
+                    end_b = get_last_day_of_month(year, month)
+                else:
+                    end_b = datetime(next_year, next_month, max(sd - 1, 1))
 
                 if first:
                     if pa_start_date > end_b:
@@ -117,7 +121,7 @@ def run_app():
 
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # FS cycles
+            # Food Stamps
             fs_cycles = []
             fs_month = snap_start_date.month
             fs_year = snap_start_date.year
@@ -126,7 +130,7 @@ def run_app():
 
             while True:
                 fs_start = datetime(fs_year, fs_month, 1)
-                fs_end = datetime(fs_year, fs_month + 1, 1) - timedelta(days=1) if fs_month < 12 else datetime(fs_year, fs_month, 31)
+                fs_end = get_last_day_of_month(fs_year, fs_month)
                 if first_fs:
                     if snap_start_date.day == 1:
                         fs_cycles.append((f"{fs_month}A", snap_start_date, fs_end, "Complete", fs_amt))
@@ -144,7 +148,7 @@ def run_app():
                     fs_month = 1
                     fs_year += 1
 
-            # Shelter cycles
+            # Shelter Grants
             shelter_cycles = []
             shelter_cutoff = datetime(2025, budget_month, ed if budget_effective.endswith("A") else 28)
             current = datetime(filing_date.year, filing_date.month, sd)
@@ -157,12 +161,12 @@ def run_app():
                 shelter_cycles.append((f"{m}A", sa, ea, shelter_amt))
                 sb = ea + timedelta(days=1)
                 nm, ny = (m + 1, y) if m < 12 else (1, y + 1)
-                eb = datetime(ny, nm, max(sd - 1, 1))  # ✅ Fix reused here
+                eb = get_last_day_of_month(ny, nm) if sd == 1 else datetime(ny, nm, max(sd - 1, 1))
                 if sb >= shelter_cutoff: break
                 shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
                 current = eb + timedelta(days=1)
 
-            # Display results
+            # Display
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
