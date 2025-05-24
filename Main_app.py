@@ -55,6 +55,7 @@ def run_app():
             f_and_o = round(pa_grant - shelter_amt, 2)
             f_and_o_cycles = []
 
+            # --- F&O Cycle Calculation ---
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -64,7 +65,6 @@ def run_app():
 
             first = True
             while True:
-                # A Cycle
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
@@ -86,13 +86,11 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
-                # B Cycle
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
                 next_year = year if month < 12 else year + 1
 
-                # ✅ FINAL FIX: Proper end_b for Toe Digit 0
                 if sd == 1:
                     end_b = get_last_day_of_month(year, month)
                 else:
@@ -118,14 +116,73 @@ def run_app():
                 month = next_month
                 year = next_year
 
-            # Label last as Backup
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # Display Output
+            # --- Food Stamps (FS) ---
+            fs_cycles = []
+            fs_month = snap_start_date.month
+            fs_year = snap_start_date.year
+            budget_month = int(budget_effective[:-1])
+            first_fs = True
+
+            while True:
+                fs_start = datetime(fs_year, fs_month, 1)
+                fs_end = get_last_day_of_month(fs_year, fs_month)
+                if first_fs:
+                    if snap_start_date.day == 1:
+                        fs_cycles.append((f"{fs_month}A", snap_start_date, fs_end, "Complete", fs_amt))
+                    else:
+                        fs_cycles.append((f"{fs_month}A", snap_start_date, fs_end, "Incomplete", "Refer to SNAP Proration Table (W-129UU)"))
+                    first_fs = False
+                else:
+                    fs_cycles.append((f"{fs_month}A", fs_start, fs_end, "Complete", fs_amt))
+
+                if fs_month == budget_month:
+                    break
+
+                fs_month += 1
+                if fs_month > 12:
+                    fs_month = 1
+                    fs_year += 1
+
+            # --- Shelter Grant ---
+            budget_half = budget_effective[-1]
+            if budget_half == "A":
+                shelter_cutoff = datetime(2025, budget_month, ed)
+            else:
+                next_month = budget_month + 1 if budget_month < 12 else 1
+                next_year = 2025 if budget_month < 12 else 2026
+                shelter_cutoff = datetime(next_year, next_month, max(sd - 1, 1))
+
+            shelter_cycles = []
+            current = datetime(filing_date.year, filing_date.month, sd)
+
+            while current < shelter_cutoff:
+                m, y = current.month, current.year
+                sa = datetime(y, m, sd)
+                ea = datetime(y, m, ed)
+                if sa >= shelter_cutoff: break
+                shelter_cycles.append((f"{m}A", sa, ea, shelter_amt))
+                sb = ea + timedelta(days=1)
+                nm, ny = (m + 1, y) if m < 12 else (1, y + 1)
+                eb = get_last_day_of_month(ny, nm) if sd == 1 else datetime(ny, nm, max(sd - 1, 1))
+                if sb >= shelter_cutoff: break
+                shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
+                current = eb + timedelta(days=1)
+
+            # --- Display Output ---
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
                 st.write(f"**{c}**: {s.strftime('%m/%d')} - {e.strftime('%m/%d')} | {t} | ${a}")
+
+            st.subheader("🥫 Food Stamps")
+            for c, s, e, t, a in fs_cycles:
+                st.write(f"**{c}**: {s.strftime('%m/%d')} - {e.strftime('%m/%d')} | {t} | {a}")
+
+            st.subheader("🏠 Shelter Grants")
+            for c, s, e, a in shelter_cycles:
+                st.write(f"**{c}**: {s.strftime('%m/%d')} - {e.strftime('%m/%d')} | ${a}")
 
         except ValueError as ve:
             st.error(f"⚠️ ValueError occurred: {ve}")
