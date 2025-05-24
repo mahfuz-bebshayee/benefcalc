@@ -55,7 +55,7 @@ def run_app():
             f_and_o = round(pa_grant - shelter_amt, 2)
             f_and_o_cycles = []
 
-            # --- F&O Cycle Calculation ---
+            # F&O
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -65,6 +65,7 @@ def run_app():
 
             first = True
             while True:
+                # A Cycle
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
@@ -86,6 +87,7 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
+                # B Cycle
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
@@ -118,7 +120,7 @@ def run_app():
 
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # --- Food Stamps (FS) ---
+            # FS
             fs_cycles = []
             fs_month = snap_start_date.month
             fs_year = snap_start_date.year
@@ -145,7 +147,7 @@ def run_app():
                     fs_month = 1
                     fs_year += 1
 
-            # --- Shelter Grant ---
+            # Shelter (month-by-month)
             budget_half = budget_effective[-1]
             if budget_half == "A":
                 shelter_cutoff = datetime(2025, budget_month, ed)
@@ -155,22 +157,28 @@ def run_app():
                 shelter_cutoff = datetime(next_year, next_month, max(sd - 1, 1))
 
             shelter_cycles = []
-            current = datetime(filing_date.year, filing_date.month, sd)
+            shelter_year = filing_date.year
+            shelter_month = filing_date.month
 
-            while current < shelter_cutoff:
-                m, y = current.month, current.year
-                sa = datetime(y, m, sd)
-                ea = datetime(y, m, ed)
-                if sa >= shelter_cutoff: break
-                shelter_cycles.append((f"{m}A", sa, ea, shelter_amt))
+            while True:
+                sa = datetime(shelter_year, shelter_month, sd)
+                ea = datetime(shelter_year, shelter_month, ed)
+                if sa > shelter_cutoff:
+                    break
+                shelter_cycles.append((f"{shelter_month}A", sa, ea, shelter_amt))
+
                 sb = ea + timedelta(days=1)
-                nm, ny = (m + 1, y) if m < 12 else (1, y + 1)
-                eb = get_last_day_of_month(ny, nm) if sd == 1 else datetime(ny, nm, max(sd - 1, 1))
-                if sb >= shelter_cutoff: break
-                shelter_cycles.append((f"{m}B", sb, eb, shelter_amt))
-                current = eb + timedelta(days=1)
+                next_month = shelter_month + 1 if shelter_month < 12 else 1
+                next_year = shelter_year if shelter_month < 12 else shelter_year + 1
+                eb = get_last_day_of_month(shelter_year, shelter_month) if sd == 1 else datetime(next_year, next_month, max(sd - 1, 1))
+                if sb > shelter_cutoff:
+                    break
+                shelter_cycles.append((f"{shelter_month}B", sb, eb, shelter_amt))
 
-            # --- Display Output ---
+                shelter_month = next_month
+                shelter_year = next_year
+
+            # Display
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
@@ -185,7 +193,7 @@ def run_app():
                 st.write(f"**{c}**: {s.strftime('%m/%d')} - {e.strftime('%m/%d')} | ${a}")
 
         except ValueError as ve:
-            st.error(f"⚠️ ValueError occurred: {ve}")
+            st.error(f"⚠️ ValueError: {ve}")
         except Exception as e:
             st.error(f"❌ Unexpected error: {e}")
 
