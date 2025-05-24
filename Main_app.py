@@ -92,7 +92,7 @@ def run_app():
                 next_month = month + 1 if month < 12 else 1
                 next_year = year if month < 12 else year + 1
 
-                # ✅ FIX: If sd == 1, use last day of current month
+                # ✅ FINAL FIX: Proper end_b for Toe Digit 0
                 if sd == 1:
                     end_b = get_last_day_of_month(year, month)
                 else:
