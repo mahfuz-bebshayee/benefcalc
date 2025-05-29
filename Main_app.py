@@ -1,3 +1,7 @@
+# Rebuild full final Streamlit app with fixed shelter cutoff logic (merged F&O, FS, and Shelter)
+import textwrap
+
+full_final_streamlit_code = textwrap.dedent("""
 import streamlit as st
 from datetime import datetime, timedelta
 
@@ -9,7 +13,7 @@ def get_last_day_of_month(year, month):
 def login():
     st.title("🔐 Benefit Calculator Login")
     password = st.text_input("Enter Password", type="password")
-    if password == "121212":
+    if password == "09101993":
         return True
     elif password:
         st.error("Incorrect password.")
@@ -53,9 +57,9 @@ def run_app():
 
             sd, ed = toe_digit_table[toe_digit]
             f_and_o = round(pa_grant - shelter_amt, 2)
-            f_and_o_cycles = []
 
-            # F&O
+            # F&O CYCLES
+            f_and_o_cycles = []
             month = pa_start_date.month
             year = pa_start_date.year
             a_start = datetime(year, month, sd)
@@ -65,7 +69,7 @@ def run_app():
 
             first = True
             while True:
-                # A Cycle
+                # A
                 cycle_name = f"{month}A"
                 start_a = datetime(year, month, sd)
                 end_a = datetime(year, month, ed)
@@ -87,12 +91,11 @@ def run_app():
                 if cycle_name == budget_effective:
                     break
 
-                # B Cycle
+                # B
                 cycle_name_b = f"{month}B"
                 start_b = end_a + timedelta(days=1)
                 next_month = month + 1 if month < 12 else 1
                 next_year = year if month < 12 else year + 1
-
                 if sd == 1:
                     end_b = get_last_day_of_month(year, month)
                 else:
@@ -120,13 +123,12 @@ def run_app():
 
             f_and_o_cycles[-1] = (*f_and_o_cycles[-1][:3], "Backup", f_and_o_cycles[-1][4])
 
-            # FS
+            # FOOD STAMPS
             fs_cycles = []
             fs_month = snap_start_date.month
             fs_year = snap_start_date.year
             budget_month = int(budget_effective[:-1])
             first_fs = True
-
             while True:
                 fs_start = datetime(fs_year, fs_month, 1)
                 fs_end = get_last_day_of_month(fs_year, fs_month)
@@ -138,28 +140,29 @@ def run_app():
                     first_fs = False
                 else:
                     fs_cycles.append((f"{fs_month}A", fs_start, fs_end, "Complete", fs_amt))
-
                 if fs_month == budget_month:
                     break
-
                 fs_month += 1
                 if fs_month > 12:
                     fs_month = 1
                     fs_year += 1
 
-            # Shelter (month-by-month)
-            budget_half = budget_effective[-1]
-            if budget_half == "A":
-                shelter_cutoff = datetime(2025, budget_month, ed)
-            else:
-                next_month = budget_month + 1 if budget_month < 12 else 1
-                next_year = 2025 if budget_month < 12 else 2026
-                shelter_cutoff = datetime(next_year, next_month, max(sd - 1, 1))
-
+            # SHELTER CYCLES
             shelter_cycles = []
+            budget_half = budget_effective[-1]
+            budget_month = int(budget_effective[:-1])
+            if budget_half == "B":
+                if sd == 1:
+                    shelter_cutoff = get_last_day_of_month(2025, budget_month)
+                else:
+                    next_month = budget_month + 1 if budget_month < 12 else 1
+                    next_year = 2025 if budget_month < 12 else 2026
+                    shelter_cutoff = datetime(next_year, next_month, max(sd - 1, 1))
+            else:
+                shelter_cutoff = datetime(2025, budget_month, ed)
+
             shelter_year = filing_date.year
             shelter_month = filing_date.month
-
             while True:
                 sa = datetime(shelter_year, shelter_month, sd)
                 ea = datetime(shelter_year, shelter_month, ed)
@@ -178,7 +181,7 @@ def run_app():
                 shelter_month = next_month
                 shelter_year = next_year
 
-            # Display
+            # DISPLAY
             st.markdown("---")
             st.subheader("📦 F&O Cycles")
             for c, s, e, t, a in f_and_o_cycles:
@@ -193,9 +196,12 @@ def run_app():
                 st.write(f"**{c}**: {s.strftime('%m/%d')} - {e.strftime('%m/%d')} | ${a}")
 
         except ValueError as ve:
-            st.error(f"⚠️ ValueError: {ve}")
+            st.error(f"⚠️ ValueError occurred: {ve}")
         except Exception as e:
             st.error(f"❌ Unexpected error: {e}")
 
 if login():
     run_app()
+""")
+
+full_final_streamlit_code
