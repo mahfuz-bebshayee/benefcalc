@@ -13,7 +13,7 @@ def get_last_day_of_month(year, month):
 def login():
     st.title("🔐 Benefit Calculator Login")
     password = st.text_input("Enter Password", type="password")
-    if password == "09101993":
+    if password == "121212":
         return True
     elif password:
         st.error("Incorrect password.")
